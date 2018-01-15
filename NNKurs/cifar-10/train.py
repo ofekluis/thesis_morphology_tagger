@@ -1,8 +1,10 @@
 import tensorflow as tf
 import numpy as np
-
+from functools import reduce # Valid in Python 2.6+, required in Python 3
+import operator
 from sys import exit
 import tensorpack.dataflow.dataset as dataset
+from math import log
 train, test = dataset.Cifar10('train'), dataset.Cifar10('test')
 
 # useful to reduce this number to 1000 for debugging purposes
@@ -24,14 +26,13 @@ x_train -= x_train_pixel_mean
 x_train /= x_train_pixel_std
 x_test -= x_train_pixel_mean
 x_test /= x_train_pixel_std
-
-
 x = tf.placeholder(tf.float32, shape=[None, 32, 32,3])
 y_ = tf.placeholder(tf.float32, shape=[None, 10])
 
 def weight_variable(shape):
-	initial = tf.truncated_normal(shape, stddev=0.1)
-	return tf.Variable(initial)
+    n = reduce(operator.mul, shape[0:-1], 1)
+    initial = tf.truncated_normal(shape, mean=0, stddev=2/n)
+    return tf.Variable(initial)
 
 def bias_variable(shape):
 	initial = tf.constant(0.1, shape=shape)
@@ -42,7 +43,7 @@ def conv2d(x, W):
 	return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
 def max_pool_2x2(x):
-	return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
+	return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],
 		strides=[1, 2, 2, 1], padding='SAME')
 
 def global_average_pool(x):
@@ -96,12 +97,36 @@ y_conv = tf.matmul(h_fc1_drop, W_fc1) + b_fc1
 # train in batches, using adam optimizier (instead of steepest gradient decent).
 # log every 100th and use non interactive mode.
 
+vars   = tf.trainable_variables()
+lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in vars
+                    if 'bias' not in v.name ]) * 0.0001
 cross_entropy = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
-train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv)) + lossL2
+
+train_step = tf.train.AdamOptimizer(0.005).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-bSize=50
+bSize=1000
+
+def get_next_batch(X, Y, batch_size):
+    n_batches = len(X) // batch_size
+    rand_idx = np.random.permutation(len(X))[:n_batches * batch_size]
+    for batch_idx in rand_idx.reshape([n_batches, batch_size]):
+        batch_x = [X[idx] for idx in batch_idx]
+        batch_y = [Y[idx] for idx in batch_idx]
+        yield batch_x, batch_y
+
+with tf.Session() as sess:
+	sess.run(tf.global_variables_initializer())
+	for i, batch in enumerate(get_next_batch(x_train, y_train, bSize)):
+		train_accuracy = accuracy.eval(feed_dict={
+			x: batch[0], y_: batch[1], keep_prob: 1.0})
+		print('step %d, training accuracy %g, loss %g' % (i, train_accuracy, 0.1))
+		train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+
+	print('test accuracy %g' % accuracy.eval(feed_dict={
+		x: x_test, y_: y_test, keep_prob: 1.0}))
+"""
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
   for i in range(0,50000-bSize,bSize):
@@ -114,5 +139,4 @@ with tf.Session() as sess:
 
   print('test accuracy %g' % accuracy.eval(feed_dict={
       x: x_test, y_: y_test, keep_prob: 1.0}))
-
-
+"""
