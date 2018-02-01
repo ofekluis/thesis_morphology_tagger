@@ -26,7 +26,8 @@ x_train -= x_train_pixel_mean
 x_train /= x_train_pixel_std
 x_test -= x_train_pixel_mean
 x_test /= x_train_pixel_std
-x = tf.placeholder(tf.float32, shape=[None, 32, 32,3])
+
+x = tf.placeholder(tf.float32, shape=[None, 32, 32, 3])
 y_ = tf.placeholder(tf.float32, shape=[None, 10])
 
 def weight_variable(shape):
@@ -42,7 +43,7 @@ def bias_variable(shape):
 def conv2d(x, W):
 	return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
-def max_pool_2x2(x):
+def max_pool_3x3(x):
 	return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],
 		strides=[1, 2, 2, 1], padding='SAME')
 
@@ -58,14 +59,14 @@ x_image = tf.reshape(x, [-1, 32, 32, 3])
 
 # ReLU + max pooling
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2(h_conv1) # after this the image is 14x14 big.
+h_pool1 = max_pool_3x3(h_conv1) # after this the image is 14x14 big.
 
 # second layer 20 dimension for the output feature map
 W_conv2 = weight_variable([4, 4, 10, 20])
 b_conv2 = bias_variable([20])
 
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = max_pool_2x2(h_conv2)
+h_pool2 = max_pool_3x3(h_conv2)
 
 # 3rd conv layer
 W_conv3 = weight_variable([3, 3, 20, 30])
@@ -97,17 +98,36 @@ y_conv = tf.matmul(h_fc1_drop, W_fc1) + b_fc1
 # train in batches, using adam optimizier (instead of steepest gradient decent).
 # log every 100th and use non interactive mode.
 
+def variable_summaries(var, name):
+
+  with tf.name_scope("summaries"):
+    mean = tf.reduce_mean(var)
+    tf.summary.scalar('mean/' + name, mean)
+
+    with tf.name_scope('stddev'):
+      stddev = tf.sqrt(tf.reduce_sum(tf.square(var - mean)))
+
+    tf.summary.scalar('stddev/' + name, stddev)
+    tf.summary.scalar('max/' + name, tf.reduce_max(var))
+    tf.summary.scalar('min/' + name, tf.reduce_min(var))
+    tf.summary.histogram(name, var)
+
 vars   = tf.trainable_variables()
 lossL2 = tf.add_n([ tf.nn.l2_loss(v) for v in vars
-                    if 'bias' not in v.name ]) * 0.0001
+                    if 'b_' not in v.name ]) * 0.0001
 cross_entropy = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv)) + lossL2
 
 train_step = tf.train.AdamOptimizer(0.005).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-bSize=1000
+bSize=100
 
+variable_summaries(W_fc1, "W_fc1")
+variable_summaries(b_fc1, "b_fc1")
+tf.summary.scalar("cross_entropy:", cross_entropy)
+
+summary_op = tf.summary.merge_all()
 def get_next_batch(X, Y, batch_size):
     n_batches = len(X) // batch_size
     rand_idx = np.random.permutation(len(X))[:n_batches * batch_size]
@@ -115,14 +135,19 @@ def get_next_batch(X, Y, batch_size):
         batch_x = [X[idx] for idx in batch_idx]
         batch_y = [Y[idx] for idx in batch_idx]
         yield batch_x, batch_y
-
 with tf.Session() as sess:
-	sess.run(tf.global_variables_initializer())
+	summary_writer = tf.summary.FileWriter("cipar-10_tf_log", graph=sess.graph)
+	var = sess.run(tf.global_variables_initializer())
 	for i, batch in enumerate(get_next_batch(x_train, y_train, bSize)):
+		if i>10:
+			break
+		_, summary_str = sess.run([train_step,  summary_op],
+							feed_dict={x: batch[0], y_: batch[1], keep_prob: 1})
 		train_accuracy = accuracy.eval(feed_dict={
-			x: batch[0], y_: batch[1], keep_prob: 1.0})
-		print('step %d, training accuracy %g, loss %g' % (i, train_accuracy, 0.1))
-		train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+			x: batch[0], y_: batch[1], keep_prob: 0.5})
+		summary_writer.add_summary(summary_str, i)
+		summary_writer.flush()
+		print('step %d, training accuracy %g, loss %g' % (i, train_accuracy, 0.0))
 
 	print('test accuracy %g' % accuracy.eval(feed_dict={
 		x: x_test, y_: y_test, keep_prob: 1.0}))
