@@ -1,5 +1,7 @@
 # lstm for the mnist dataset
 # https://jasdeep06.github.io/posts/Understanding-LSTM-in-Tensorflow-MNIST/https://jasdeep06.github.io/posts/Understanding-LSTM-in-Tensorflow-MNIST/
+import tensorflow as tf
+from tensorflow.contrib import rnn
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
