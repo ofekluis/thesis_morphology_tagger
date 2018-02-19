@@ -125,6 +125,10 @@ class Seq2SeqModel(object):
       def single_cell():
         return tf.contrib.rnn.BasicLSTMCell(size)
     cell = single_cell()
+    # The next 3 lines are a workaround for deepcopy of cells and bucketing
+    setattr(tf.contrib.rnn.GRUCell, '__deepcopy__', lambda self, _: self)
+    setattr(tf.contrib.rnn.BasicLSTMCell, '__deepcopy__', lambda self, _: self)
+    setattr(tf.contrib.rnn.MultiRNNCell, '__deepcopy__', lambda self, _: self)
     if num_layers > 1:
       cell = tf.contrib.rnn.MultiRNNCell([single_cell() for _ in range(num_layers)])
 
