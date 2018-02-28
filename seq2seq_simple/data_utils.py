@@ -323,3 +323,20 @@ def prepare_data(data_dir, from_train_path, to_train_path, from_dev_path, to_dev
   return (from_train_ids_path, to_train_ids_path,
           from_dev_ids_path, to_dev_ids_path,
           from_vocab_path, to_vocab_path)
+
+def check_accuracy(seq1, seq2):
+    """check the accuracy of two sequences, reports precent back,
+    where each word in seq1 is consider the same as word in seq2 if they
+    are exactly the same. Delimiters are expected to be spaces
+    Args:
+        seq1: first sequence
+        seq2: second sequence
+    Returns:
+        Accuracy as float.
+    """
+    score=0
+    total= len(seq1) if len(seq1) < len(seq2) else len(seq2)
+    for t1,t2 in zip(seq1.strip().split(), seq2.strip().split()):
+        if t1==t2:
+            score+=1
+    return score/total

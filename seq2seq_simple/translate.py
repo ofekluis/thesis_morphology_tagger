@@ -72,8 +72,10 @@ tf.app.flags.DEFINE_boolean("use_fp16", False,
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string("from_train_data", FLAGS.train_dir + "x_trn", "Training data.")
 tf.app.flags.DEFINE_string("to_train_data", FLAGS.train_dir + "y_trn" , "Training data.")
-tf.app.flags.DEFINE_string("from_dev_data", FLAGS.train_dir + "x_vld", "Training data.")
-tf.app.flags.DEFINE_string("to_dev_data", FLAGS.train_dir + "y_vld", "Training data.")
+tf.app.flags.DEFINE_string("from_dev_data", FLAGS.train_dir + "x_vld", "Validation data.")
+tf.app.flags.DEFINE_string("to_dev_data", FLAGS.train_dir + "y_vld", "Validation data.")
+tf.app.flags.DEFINE_string("from_tst_data", FLAGS.train_dir + "x_tst", "Test data.")
+tf.app.flags.DEFINE_string("to_tst_data", FLAGS.train_dir + "y_tst", "Test data.")
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -276,13 +278,59 @@ def decode():
       # If there is an EOS symbol in outputs, cut them at that point.
       if data_utils.EOS_ID in outputs:
         outputs = outputs[:outputs.index(data_utils.EOS_ID)]
-      print(outputs)
-      # Print out French sentence corresponding to outputs.
+      # Print out target labels corresponding to outputs.
       print(" ".join([tf.compat.as_str(rev_to_vocab[output%298]) for output in outputs]))
       print("> ", end="")
       sys.stdout.flush()
       sentence = sys.stdin.readline()
 
+def decode_tst_accuracy():
+    accuracy=0 # sums accuracy of predictions in relation to gold standard
+    counter=0 # counts samples in test data
+    with tf.Session() as sess:
+        # Create model and load parameters.
+        model = create_model(sess, True)
+        model.batch_size = 1  # We decode one sentence at a time.
+
+        # Load vocabularies.
+        from_vocab_path = os.path.join(FLAGS.data_dir,
+                                    "vocab%d.from" % FLAGS.from_vocab_size)
+        to_vocab_path = os.path.join(FLAGS.data_dir,
+                                    "vocab%d.to" % FLAGS.to_vocab_size)
+        from_vocab, _ = data_utils.initialize_vocabulary(from_vocab_path)
+        _, rev_to_vocab = data_utils.initialize_vocabulary(to_vocab_path)
+        with open(FLAGS.from_tst_data, 'r') as tstSrc:
+            with open(FLAGS.to_tst_data, 'r') as tstTgt:
+                for src in tstSrc:
+                    for tgt in tstTgt:
+                        # Get token-ids for the input sentence.
+                        token_ids = data_utils.sentence_to_token_ids(tf.compat.as_bytes(src.strip()), from_vocab)
+                        # Which bucket does it belong to?
+                        bucket_id = len(_buckets) - 1
+                        for i, bucket in enumerate(_buckets):
+                            if bucket[0] >= len(token_ids):
+                                bucket_id = i
+                                break
+                            else:
+                                logging.warning("Sentence truncated: %s", src)
+
+                        # Get a 1-element batch to feed the sentence to the model.
+                        encoder_inputs, decoder_inputs, target_weights = model.get_batch(
+                            {bucket_id: [(token_ids, [])]}, bucket_id)
+                        # Get output logits for the sentence.
+                        _, _, output_logits = model.step(sess, encoder_inputs, decoder_inputs,
+                                                        target_weights, bucket_id, True)
+                        # This is a greedy decoder - outputs are just argmaxes of output_logits.
+                        outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
+                        # If there is an EOS symbol in outputs, cut them at that point.
+                        if data_utils.EOS_ID in outputs:
+                            outputs = outputs[:outputs.index(data_utils.EOS_ID)]
+                        # Print out target labels corresponding to outputs.
+                        predicted=(" ".join([tf.compat.as_str(rev_to_vocab[output%298]) for output in outputs]))
+                        # compares prediction to gold standard summing accuracies
+                        accuracy+=data_utils.check_accuracy(tgt.strip(),predicted)
+                        counter+=1
+    print(accuracy/counter)
 
 def self_test():
   """Test the translation model."""
@@ -308,7 +356,7 @@ def main(_):
   if FLAGS.self_test:
     self_test()
   elif FLAGS.decode:
-    decode()
+    decode_tst_accuracy()
   else:
     train()
 
