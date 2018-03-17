@@ -120,10 +120,10 @@ class Seq2SeqModel(object):
 
     # Create the internal multi-layer cell for our RNN.
     def single_cell():
-      return tf.contrib.rnn.GRUCell(size)
+      return tf.contrib.rnn.GRUCell(size, reuse=tf.get_variable_scope().reuse)
     if use_lstm:
       def single_cell():
-        return tf.contrib.rnn.BasicLSTMCell(size)
+        return tf.contrib.rnn.BasicLSTMCell(size, reuse=tf.get_variable_scope().reuse)
     cell = single_cell()
     # The next 3 lines are a workaround for deepcopy of cells and bucketing
     setattr(tf.contrib.rnn.GRUCell, '__deepcopy__', lambda self, _: self)
