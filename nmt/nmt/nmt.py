@@ -119,7 +119,7 @@ def add_arguments(parser):
       """)
 
   parser.add_argument(
-      "--num_train_steps", type=int, default=12000, help="Num steps to train.")
+      "--num_train_steps", type=int, default=20000, help="Num steps to train.")
   parser.add_argument("--colocate_gradients_with_ops", type="bool", nargs="?",
                       const=True,
                       default=True,
