@@ -406,7 +406,7 @@ def train(hparams, scope=None, target_session=""):
                         sample_tgt_data)
       run_internal_eval(
           eval_model, eval_sess, model_dir, hparams, summary_writer)
-
+      run_external_eval(infer_model, infer_sess, model_dir, hparams,summary_writer)
     if global_step - last_external_eval_step >= steps_per_external_eval:
       last_external_eval_step = global_step
 
