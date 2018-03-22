@@ -42,8 +42,8 @@ def extract_data(in_path,out_path,lang):
                             for token in pau:
                                 x_curr.append(token.attrib["w"])
                                 y_curr.append(token.attrib["pos"])
-                                print(" ".join(x_curr), file=x_all)
-                                print(" ".join(y_curr), file=y_all)
+                            print(" ".join(x_curr), file=x_all)
+                            print(" ".join(y_curr), file=y_all)
 def divide_data(out_path, lang):
     """
     divides x_all and y_all into train-, validation- and testset with the ratio of amount of sentences

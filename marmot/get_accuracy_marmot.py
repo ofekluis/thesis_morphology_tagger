@@ -2,6 +2,7 @@
 from sys import argv
 def get_accuracy():
     same=0
+    count=0
     with open(argv[1], "r") as real:
         with open(argv[2], "r") as pred:
             for i,(line_r,line_p) in enumerate(zip(real,pred)):
@@ -15,7 +16,13 @@ def get_accuracy():
                     pos_p=line_p[5]
                     morph_p=line_p[7]
                     if pos_r==pos_p and morph_r==morph_p:
+                        count+=1
                         same+=1
+                if i%10==0:
+                    if count>7:
+                        print(i)
+                else:
+                    count=0
     print(same/(i+1))
 if __name__ == "__main__":
     get_accuracy()
