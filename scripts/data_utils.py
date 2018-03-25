@@ -30,11 +30,10 @@ from tensorflow.python.platform import gfile
 import tensorflow as tf
 
 # Special vocabulary symbols - we always put them at the start.
-_PAD = b"_PAD"
-_GO = b"_GO"
-_EOS = b"_EOS"
-_UNK = b"_UNK"
-_START_VOCAB = [_PAD, _GO, _EOS, _UNK]
+_GO = b"<s>"
+_EOS = b"</s>"
+_UNK = b"<unk>"
+_START_VOCAB = [_UNK, _GO, _EOS]
 
 PAD_ID = 0
 GO_ID = 1
@@ -116,7 +115,7 @@ def space_tokenizer(sentence):
     return sentence.strip().split()
 
 
-def create_vocabulary(vocabulary_path, data_path, max_vocabulary_size,
+def create_vocabulary(data_path, vocabulary_path, max_vocabulary_size,
                       tokenizer=space_tokenizer, normalize_digits=True):
   """Create vocabulary file (if it does not exist yet) from data file.
 
@@ -342,4 +341,4 @@ def check_accuracy(seq1, seq2):
             score+=1
     return score/total
 if __name__ == "__main__":
-    create_vocabulary(argv[1],argv[2],argv[3])
+    create_vocabulary(argv[1],argv[2],int(argv[3]))
