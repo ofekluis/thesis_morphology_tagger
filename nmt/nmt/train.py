@@ -332,11 +332,11 @@ def train(hparams, scope=None, target_session=""):
       os.path.join(out_dir, summary_name), train_model.graph)
 
   # First evaluation
-  run_full_eval(
-      model_dir, infer_model, infer_sess,
-      eval_model, eval_sess, hparams,
-      summary_writer, sample_src_data,
-      sample_tgt_data, avg_ckpts)
+  #run_full_eval(
+  #    model_dir, infer_model, infer_sess,
+  #    eval_model, eval_sess, hparams,
+  #    summary_writer, sample_src_data,
+  #    sample_tgt_data, avg_ckpts)
 
   last_stats_step = global_step
   last_eval_step = global_step
@@ -404,8 +404,8 @@ def train(hparams, scope=None, target_session=""):
       run_sample_decode(infer_model, infer_sess,
                         model_dir, hparams, summary_writer, sample_src_data,
                         sample_tgt_data)
-      run_internal_eval(
-          eval_model, eval_sess, model_dir, hparams, summary_writer)
+      #run_internal_eval(
+      #    eval_model, eval_sess, model_dir, hparams, summary_writer)
       run_external_eval(infer_model, infer_sess, model_dir, hparams,summary_writer)
     if global_step - last_external_eval_step >= steps_per_external_eval:
       last_external_eval_step = global_step
