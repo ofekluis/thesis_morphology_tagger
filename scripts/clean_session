@@ -1,0 +1,8 @@
+rm *ckpt*
+rm output*
+rm checkpoint
+rm -rf best_accuracy/*
+rm log*
+sed -i -e 's/epoch_step\": [0-9]*,/epoch_step\": 0,/g' hparams
+sed -i -e 's/best_accuracy\": [0-9.]*,/best_accuracy\": 0,/g' hparams
+

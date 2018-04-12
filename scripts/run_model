@@ -1,0 +1,1 @@
+python3 -m nmt.nmt     --src=from --tgt=to     --vocab_prefix=./nmt/vocab      --train_prefix=./nmt/trn     --dev_prefix=./nmt/dev  --test_prefix=./nmt/tst    --out_dir=./nmt

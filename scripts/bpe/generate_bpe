@@ -1,0 +1,18 @@
+#!/bin/bash
+# pretty straight forward: generate bpe subword files of dataset. Args: $1 number of connections for "from" dataset, $2 number of connections for "to" dataset (-1 means don't generate)
+suffix=$3 # extra third arg to change to handle slightly different names like with _aug for augmented files
+echo "trn${suffix}"
+if (( $1 > -1 )); then
+	from_codes=codes_$1.from
+	python3 $bpe_path/learn_bpe.py -s $1 < trn${suffix}.from > $from_codes
+	python3 $bpe_path/apply_bpe.py -c $from_codes < trn${suffix}.from > trn${suffix}_bpe.from
+	python3 $bpe_path/apply_bpe.py -c $from_codes < vld${suffix}.from > vld${suffix}_bpe.from
+	python3 $bpe_path/apply_bpe.py -c $from_codes < tst${suffix}.from > tst${suffix}_bpe.from
+fi
+if (( $2 > -1 )); then
+	to_codes=codes_$2.to
+	python3 $bpe_path/learn_bpe.py -s $2 < trn${suffix}.to > $to_codes
+	python3 $bpe_path/apply_bpe.py -c $to_codes < trn${suffix}.to > trn${suffix}_bpe.to
+	python3 $bpe_path/apply_bpe.py -c $to_codes < vld${suffix}.to > vld${suffix}_bpe.to
+	python3 $bpe_path/apply_bpe.py -c $to_codes < tst${suffix}.to > tst${suffix}_bpe.to
+fi
