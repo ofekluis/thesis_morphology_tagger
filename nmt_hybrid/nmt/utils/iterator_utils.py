@@ -40,7 +40,7 @@ def get_infer_iterator(src_dataset,
     src_eos_id = tf.cast(src_vocab_table.lookup(tf.constant(eos)), tf.int32)
     src_dataset = src_dataset.map(lambda src: tf.string_split([src]).values)
 
-    char = src_char_vocab_table != ""
+    char = not(src_char_vocab_table is None)
     if src_max_len:
         src_dataset = src_dataset.map(lambda src: src[:src_max_len])
     if char:
@@ -95,7 +95,7 @@ def get_infer_iterator(src_dataset,
 
     batched_dataset = batching_func(src_dataset, char)
     batched_iter = batched_dataset.make_initializable_iterator()
-    src_char_ids = ""
+    src_char_ids = None
     if char:
         (src_ids, src_char_ids, src_seq_len) = batched_iter.get_next()
     else:
@@ -134,8 +134,7 @@ def get_iterator(src_dataset,
     tgt_sos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(sos)), tf.int32)
     tgt_eos_id = tf.cast(tgt_vocab_table.lookup(tf.constant(eos)), tf.int32)
 
-    char = src_char_vocab_table != ""
-
+    char = not(src_char_vocab_table is None)
     if char:
         src_char_eos_id = tf.cast(src_char_vocab_table.lookup(tf.constant(eos)), tf.int32)
 
@@ -204,7 +203,7 @@ def get_iterator(src_dataset,
     # Bucket by source sequence length (buckets for lengths 0-9, 10-19, ...)
     def batching_func(x, char=False):
         if char:
-            return x[0].padded_batch(
+            return x.padded_batch(
                 batch_size,
                 # The first three entries are the source and target line rows;
                 # these have unknown-length vectors.    The last two entries are
@@ -227,6 +226,7 @@ def get_iterator(src_dataset,
                         0,    # src_len -- unused
                         0))    # tgt_len -- unused
         else:
+            
             return x.padded_batch(
                 batch_size,
                 # The first three entries are the source and target line rows;
@@ -265,8 +265,8 @@ def get_iterator(src_dataset,
             bucket_id = tf.maximum(inputs[-2] // bucket_width, inputs[-1] // bucket_width)
             return tf.to_int64(tf.minimum(num_buckets, bucket_id))
 
-        def reduce_func(*inputs):
-            return batching_func(inputs[1:], char)
+        def reduce_func(unused_key, windowed_data):
+            return batching_func(windowed_data,char)
 
         batched_dataset = src_tgt_dataset.apply(
                 tf.contrib.data.group_by_window(
