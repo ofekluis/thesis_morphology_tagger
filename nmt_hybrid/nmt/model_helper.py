@@ -291,6 +291,8 @@ def create_emb_for_encoder_and_decoder(share_vocab,
                                        num_partitions=0,
                                        src_vocab_file=None,
                                        src_char_vocab_file=None,
+                                       src_char_vocab_size=None,
+                                       src_char_embed_size=None,
                                        tgt_vocab_file=None,
                                        src_embed_file=None,
                                        tgt_embed_file=None,
@@ -361,7 +363,7 @@ def create_emb_for_encoder_and_decoder(share_vocab,
     if src_char_vocab_file:
       with tf.variable_scope("encoder_char", partitioner=partitioner):
         embedding_char_encoder = _create_or_load_embed(
-        "embedding_char_encoder", src_char_vocab_file, "", src_vocab_size, min(src_embed_size,128), dtype)
+        "embedding_char_encoder", src_char_vocab_file, "", src_char_vocab_size, src_char_embed_size, dtype)
     else:
         embedding_char_encoder=None
   return embedding_encoder, embedding_decoder, embedding_char_encoder

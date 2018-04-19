@@ -249,6 +249,8 @@ class BaseModel(object):
             num_partitions=hparams.num_embeddings_partitions,
             src_vocab_file=hparams.src_vocab_file,
             src_char_vocab_file=hparams.src_char_vocab_file,
+            src_char_vocab_size=hparams.src_char_vocab_size,
+            src_char_embed_size=hparams.num_units_char,
             tgt_vocab_file=hparams.tgt_vocab_file,
             src_embed_file=hparams.src_embed_file,
             tgt_embed_file=hparams.tgt_embed_file,
@@ -556,10 +558,14 @@ class Model(BaseModel):
     num_layers = self.num_encoder_layers
     num_residual_layers = self.num_encoder_residual_layers
     iterator = self.iterator
-    num_units=hparams.num_units
-    num_units_char=hparams.num_units_char
+    num_units = hparams.num_units
+    num_units_char= hparams.num_units_char
     source = iterator.source
     src_char_ids = iterator.source_char
+    seq_len = iterator.source_sequence_length
+    src_max_len = hparams.src_max_len
+    batch_size = hparams.batch_size
+    char_v_size=hparams.char_v_size
     if self.time_major:
       source = tf.transpose(source)
 
@@ -571,14 +577,17 @@ class Model(BaseModel):
       if iterator.source_char is not None:
         encoder_char_emb_inp = tf.nn.embedding_lookup(
             self.embedding_char_encoder, src_char_ids)
+        #print(encoder_char_emb_inp)
         s = tf.shape(encoder_char_emb_inp)
+        print("here-------",s[0],s[1],s[2],s[3])
         encoder_char_emb_inp = tf.reshape(encoder_char_emb_inp,
-          shape=[s[0]*s[1], s[-2], num_units])
+          shape=[s[0]*s[1], s[2], num_units_char])
+        print(encoder_char_emb_inp)
         # dynamic rnn on the characters of the words of every sentence in the batch
         # will be concatenated with the representation of the word embeddings.
-        cell_fw = tf.contrib.rnn.LSTMCell(num_units_char,
+        cell_fw = tf.contrib.rnn.LSTMCell(char_v_size,
           state_is_tuple=True)
-        cell_bw = tf.contrib.rnn.LSTMCell(num_units_char,
+        cell_bw = tf.contrib.rnn.LSTMCell(char_v_size,
           state_is_tuple=True)
         _output = tf.nn.bidirectional_dynamic_rnn(
           cell_fw, cell_bw, encoder_char_emb_inp, dtype=tf.float32)
@@ -586,7 +595,8 @@ class Model(BaseModel):
         _, ((_, output_fw), (_, output_bw)) = _output
         output = tf.concat([output_fw, output_bw], axis=-1)
         output = tf.reshape(output,
-        shape=[s[1], s[0], 2*num_units_char])
+        shape=[s[1], s[0], 2*char_v_size])
+        print(encoder_emb_inp, output)
         encoder_emb_inp = tf.concat([encoder_emb_inp, output], axis=-1)
 
       # Encoder_outputs: [max_time, batch_size, num_units]
