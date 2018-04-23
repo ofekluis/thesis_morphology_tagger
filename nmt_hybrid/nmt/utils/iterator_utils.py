@@ -55,7 +55,6 @@ def get_infer_iterator(src_dataset,
         src_max_len=None,
         src_char_vocab_table=None):
     src_eos_id = tf.cast(src_vocab_table.lookup(tf.constant(eos)), tf.int32)
-    src_char_eos_id = tf.cast(src_char_vocab_table.lookup(tf.constant(eos)), tf.int32)
     src_dataset = src_dataset.map(lambda src: tf.string_split([src]).values)
 
     char = not(src_char_vocab_table is None)
@@ -66,6 +65,7 @@ def get_infer_iterator(src_dataset,
         # the tf.map_fn might seem a bit more involved but it basically just a
         # nested loop converting every char of every word in every sentence into
         # its id.
+        src_char_eos_id = tf.cast(src_char_vocab_table.lookup(tf.constant(eos)), tf.int32)
         src_dataset = src_dataset.map(
             lambda src: (tf.cast(src_vocab_table.lookup(src), tf.int32),
                 tf.map_fn(lambda word: pad_tensor(tf.cast(src_char_vocab_table.lookup(
