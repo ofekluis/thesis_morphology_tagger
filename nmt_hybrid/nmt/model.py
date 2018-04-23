@@ -42,6 +42,7 @@ class BaseModel(object):
                mode,
                iterator,
                source_vocab_table,
+               src_char_vocab_table,
                target_vocab_table,
                reverse_target_vocab_table=None,
                scope=None,
@@ -566,6 +567,7 @@ class Model(BaseModel):
     src_max_len = hparams.src_max_len
     batch_size = hparams.batch_size
     char_v_size=hparams.char_v_size
+    word_len=iterator.word_len
     if self.time_major:
       source = tf.transpose(source)
 
@@ -578,11 +580,11 @@ class Model(BaseModel):
         encoder_char_emb_inp = tf.nn.embedding_lookup(
             self.embedding_char_encoder, src_char_ids)
         #print(encoder_char_emb_inp)
+        #s_word = tf.shape(word_len)
         s = tf.shape(encoder_char_emb_inp)
-        print("here-------",s[0],s[1],s[2],s[3])
+        word_len= tf.reshape(word_len, shape=[-1])
         encoder_char_emb_inp = tf.reshape(encoder_char_emb_inp,
-          shape=[s[0]*s[1], s[2], num_units_char])
-        print(encoder_char_emb_inp)
+        shape=[s[0]*s[1], s[-2], num_units_char])
         # dynamic rnn on the characters of the words of every sentence in the batch
         # will be concatenated with the representation of the word embeddings.
         cell_fw = tf.contrib.rnn.LSTMCell(char_v_size,
@@ -590,7 +592,7 @@ class Model(BaseModel):
         cell_bw = tf.contrib.rnn.LSTMCell(char_v_size,
           state_is_tuple=True)
         _output = tf.nn.bidirectional_dynamic_rnn(
-          cell_fw, cell_bw, encoder_char_emb_inp, dtype=tf.float32)
+          cell_fw, cell_bw, encoder_char_emb_inp, sequence_length=word_len, dtype=tf.float32)
 
         _, ((_, output_fw), (_, output_bw)) = _output
         output = tf.concat([output_fw, output_bw], axis=-1)
