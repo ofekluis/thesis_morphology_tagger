@@ -111,6 +111,7 @@ def create_train_model(
           iterator=iterator,
           mode=tf.contrib.learn.ModeKeys.TRAIN,
           source_vocab_table=src_vocab_table,
+          src_char_vocab_table=src_char_vocab_table,
           target_vocab_table=tgt_vocab_table,
           scope=scope,
           extra_args=extra_args)
@@ -163,6 +164,7 @@ def create_eval_model(model_creator, hparams, scope=None, extra_args=None):
         iterator=iterator,
         mode=tf.contrib.learn.ModeKeys.EVAL,
         source_vocab_table=src_vocab_table,
+        src_char_vocab_table=src_char_vocab_table,
         target_vocab_table=tgt_vocab_table,
         scope=scope,
         extra_args=extra_args)
@@ -178,7 +180,7 @@ def create_eval_model(model_creator, hparams, scope=None, extra_args=None):
 
 class InferModel(
     collections.namedtuple("InferModel",
-                           ("graph", "model", "src_placeholder",
+                           ("graph", "model", "src_placeholder", "src_char_placeholder",
                             "batch_size_placeholder", "iterator", "char"))):
   pass
 
@@ -197,7 +199,7 @@ def create_infer_model(model_creator, hparams, scope=None, extra_args=None):
         tgt_vocab_file, default_value=vocab_utils.UNK)
 
     src_placeholder = tf.placeholder(shape=[None], dtype=tf.string)
-    src_char_placeholder = tf.placeholder(shape=[None], dtype=tf.string)
+    src_char_placeholder = tf.placeholder(shape=[2,3], dtype=tf.string)
     batch_size_placeholder = tf.placeholder(shape=[], dtype=tf.int64)
 
     src_dataset = tf.data.Dataset.from_tensor_slices(
@@ -216,6 +218,7 @@ def create_infer_model(model_creator, hparams, scope=None, extra_args=None):
         iterator=iterator,
         mode=tf.contrib.learn.ModeKeys.INFER,
         source_vocab_table=src_vocab_table,
+        src_char_vocab_table=src_char_vocab_table,
         target_vocab_table=tgt_vocab_table,
         reverse_target_vocab_table=reverse_tgt_vocab_table,
         scope=scope,
@@ -224,6 +227,7 @@ def create_infer_model(model_creator, hparams, scope=None, extra_args=None):
       graph=graph,
       model=model,
       src_placeholder=src_placeholder,
+      src_char_placeholder=src_char_placeholder,
       batch_size_placeholder=batch_size_placeholder,
       iterator=iterator,
         char=char)
