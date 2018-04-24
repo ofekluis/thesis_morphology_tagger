@@ -41,6 +41,7 @@ class AttentionModel(model.Model):
                iterator,
                source_vocab_table,
                target_vocab_table,
+               src_char_vocab_table=None,
                reverse_target_vocab_table=None,
                scope=None,
                extra_args=None):
@@ -56,6 +57,7 @@ class AttentionModel(model.Model):
         iterator=iterator,
         source_vocab_table=source_vocab_table,
         target_vocab_table=target_vocab_table,
+        src_char_vocab_table=src_char_vocab_table,
         reverse_target_vocab_table=reverse_target_vocab_table,
         scope=scope,
         extra_args=extra_args)
@@ -73,7 +75,7 @@ class AttentionModel(model.Model):
       raise ValueError(
           "Unknown attention architecture %s" % attention_architecture)
 
-    num_units = hparams.num_units
+    num_units = hparams.num_units + hparams.num_units_char
     num_layers = self.num_decoder_layers
     num_residual_layers = self.num_decoder_residual_layers
     beam_width = hparams.beam_width
@@ -102,7 +104,8 @@ class AttentionModel(model.Model):
 
     cell = model_helper.create_rnn_cell(
         unit_type=hparams.unit_type,
-        num_units=num_units,
+        num_units=hparams.num_units,
+        num_units_char=hparams.num_units_char,
         num_layers=num_layers,
         num_residual_layers=num_residual_layers,
         forget_bias=hparams.forget_bias,
