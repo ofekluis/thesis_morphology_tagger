@@ -1,3 +1,5 @@
+# Edited by Ofek Luis Lewinsohn (2018) for hybrid char plus word level embeddings
+
 """Utility functions for building models."""
 from __future__ import print_function
 
@@ -450,7 +452,7 @@ def _cell_list(unit_type, num_units, num_layers, num_residual_layers,
   return cell_list
 
 
-def create_rnn_cell(unit_type, num_units, num_layers, num_residual_layers,
+def create_rnn_cell(unit_type, num_units, num_units_char, num_layers, num_residual_layers,
                     forget_bias, dropout, mode, num_gpus, base_gpu=0,
                     single_cell_fn=None):
   """Create multi-layer RNN cell.
@@ -477,7 +479,7 @@ def create_rnn_cell(unit_type, num_units, num_layers, num_residual_layers,
     An `RNNCell` instance.
   """
   cell_list = _cell_list(unit_type=unit_type,
-                         num_units=num_units,
+                         num_units=num_units + num_units_char,
                          num_layers=num_layers,
                          num_residual_layers=num_residual_layers,
                          forget_bias=forget_bias,

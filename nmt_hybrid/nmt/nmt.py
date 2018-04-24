@@ -42,6 +42,7 @@ def add_arguments(parser):
 
   # network
   parser.add_argument("--num_units", type=int, default=32, help="Network size.")
+  parser.add_argument("--num_units_char", type=int, default=0, help="Network char size. If not zero network size will be num_units_char+num_units")
   parser.add_argument("--num_layers", type=int, default=2,
                       help="Network depth.")
   parser.add_argument("--num_encoder_layers", type=int, default=None,
@@ -302,6 +303,7 @@ def create_hparams(flags):
 
       # Networks
       num_units=flags.num_units,
+      num_units_char=flags.num_units_char,
       num_layers=flags.num_layers,  # Compatible
       num_encoder_layers=(flags.num_encoder_layers or flags.num_layers),
       num_decoder_layers=(flags.num_decoder_layers or flags.num_layers),
@@ -367,7 +369,6 @@ def create_hparams(flags):
       avg_ckpts=flags.avg_ckpts,
       num_intra_threads=flags.num_intra_threads,
       num_inter_threads=flags.num_inter_threads,
-      src_vocab_char_file="./nmt/src_vocab_char.from",
   )
 
 
@@ -428,6 +429,7 @@ def extend_hparams(hparams):
   # Get vocab file names first
   if hparams.vocab_prefix:
     src_vocab_file = hparams.vocab_prefix + "." + hparams.src
+    src_char_vocab_file = hparams.vocab_prefix + "_char." + hparams.src
     tgt_vocab_file = hparams.vocab_prefix + "." + hparams.tgt
   else:
     raise ValueError("hparams.vocab_prefix must be provided.")
@@ -440,6 +442,16 @@ def extend_hparams(hparams):
       sos=hparams.sos,
       eos=hparams.eos,
       unk=vocab_utils.UNK)
+
+  # Source vocab char
+  if hparams.num_units_char > 0:
+     src_char_vocab_size, src_char_vocab_file = vocab_utils.check_vocab(
+     src_char_vocab_file,
+     hparams.out_dir,
+     check_special_token=hparams.check_special_token,
+     sos=hparams.sos,
+     eos=hparams.eos,
+     unk=vocab_utils.UNK)
 
   # Target vocab
   if hparams.share_vocab:
@@ -458,6 +470,13 @@ def extend_hparams(hparams):
   hparams.add_hparam("tgt_vocab_size", tgt_vocab_size)
   hparams.add_hparam("src_vocab_file", src_vocab_file)
   hparams.add_hparam("tgt_vocab_file", tgt_vocab_file)
+  if hparams.num_units_char > 0:
+    hparams.add_hparam("src_char_vocab_size", src_char_vocab_size)
+    hparams.add_hparam("src_char_vocab_file", src_char_vocab_file)
+  else:
+    hparams.add_hparam("src_char_vocab_size", 0)
+    hparams.add_hparam("src_char_vocab_file", None)
+
 
   # Pretrained Embeddings:
   hparams.add_hparam("src_embed_file", "")
@@ -561,7 +580,6 @@ def run_main(flags, default_hparams, train_fn, inference_fn, target_session=""):
   # Load hparams.
   hparams = create_or_load_hparams(
       out_dir, default_hparams, flags.hparams_path, save_hparams=(jobid == 0))
-  print(hparams.share_vocab, "here!!")
   if flags.inference_input_file:
     # Inference indices
     hparams.inference_indices = None

@@ -337,6 +337,7 @@ class BaseModel(object):
     return model_helper.create_rnn_cell(
         unit_type=hparams.unit_type,
         num_units=hparams.num_units,
+        num_units_char=hparams.num_units_char,
         num_layers=num_layers,
         num_residual_layers=num_residual_layers,
         forget_bias=hparams.forget_bias,
@@ -559,14 +560,9 @@ class Model(BaseModel):
     num_layers = self.num_encoder_layers
     num_residual_layers = self.num_encoder_residual_layers
     iterator = self.iterator
-    num_units = hparams.num_units
     num_units_char= hparams.num_units_char
     source = iterator.source
     src_char_ids = iterator.source_char
-    seq_len = iterator.source_sequence_length
-    src_max_len = hparams.src_max_len
-    batch_size = hparams.batch_size
-    char_v_size=hparams.char_v_size
     word_len=iterator.word_len
     if self.time_major:
       source = tf.transpose(source)
@@ -587,9 +583,9 @@ class Model(BaseModel):
         shape=[s[0]*s[1], s[2], num_units_char])
         # dynamic rnn on the characters of the words of every sentence in the batch
         # will be concatenated with the representation of the word embeddings.
-        cell_fw = tf.contrib.rnn.LSTMCell(char_v_size,
+        cell_fw = tf.contrib.rnn.LSTMCell(num_units_char,
           state_is_tuple=True)
-        cell_bw = tf.contrib.rnn.LSTMCell(char_v_size,
+        cell_bw = tf.contrib.rnn.LSTMCell(num_units_char,
           state_is_tuple=True)
         _, (state_fw_char, state_bw_char) = tf.nn.bidirectional_dynamic_rnn(
           cell_fw, cell_bw, encoder_char_emb_inp, sequence_length=word_len, dtype=tf.float32)
@@ -598,10 +594,10 @@ class Model(BaseModel):
 
         if self.time_major:
           h_state_char = tf.reshape(h_state_char,
-          shape=[s[1], s[0], 2*char_v_size])
+          shape=[s[1], s[0], 2*num_units_char])
         else:
           h_state_char = tf.reshape(h_state_char,
-          shape=[s[0], s[1], 2*char_v_size])
+          shape=[s[0], s[1], 2*num_units_char])
 
         encoder_emb_inp = tf.concat([encoder_emb_inp, h_state_char], axis=-1)
 
@@ -698,6 +694,7 @@ class Model(BaseModel):
     cell = model_helper.create_rnn_cell(
         unit_type=hparams.unit_type,
         num_units=hparams.num_units,
+        num_units_char=hparams.num_units_char,
         num_layers=self.num_decoder_layers,
         num_residual_layers=self.num_decoder_residual_layers,
         forget_bias=hparams.forget_bias,
