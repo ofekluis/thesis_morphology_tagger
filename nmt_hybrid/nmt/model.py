@@ -570,36 +570,40 @@ class Model(BaseModel):
     word_len=iterator.word_len
     if self.time_major:
       source = tf.transpose(source)
-
     with tf.variable_scope("encoder") as scope:
       dtype = scope.dtype
       # Look up embedding, emp_inp: [max_time, batch_size, num_units]
       encoder_emb_inp = tf.nn.embedding_lookup(
         self.embedding_encoder, source)
       if iterator.source_char is not None:
+        # in case of char embeddings in a hybrid word plus char embeddings mode.
         encoder_char_emb_inp = tf.nn.embedding_lookup(
-            self.embedding_char_encoder, src_char_ids)
-        #print(encoder_char_emb_inp)
-        #s_word = tf.shape(word_len)
+          self.embedding_char_encoder, src_char_ids)
         s = tf.shape(encoder_char_emb_inp)
-        word_len= tf.reshape(word_len, shape=[-1])
+        # s[0] = sents in batch, s[1] = max words in sent,
+        # s[2] = max letters in word, s[3] = size of embedding for letters
+        word_len= tf.reshape(word_len, shape=[s[0]*s[1]])
         encoder_char_emb_inp = tf.reshape(encoder_char_emb_inp,
-        shape=[s[0]*s[1], s[-2], num_units_char])
+        shape=[s[0]*s[1], s[2], num_units_char])
         # dynamic rnn on the characters of the words of every sentence in the batch
         # will be concatenated with the representation of the word embeddings.
         cell_fw = tf.contrib.rnn.LSTMCell(char_v_size,
           state_is_tuple=True)
         cell_bw = tf.contrib.rnn.LSTMCell(char_v_size,
           state_is_tuple=True)
-        _output = tf.nn.bidirectional_dynamic_rnn(
+        _, (state_fw_char, state_bw_char) = tf.nn.bidirectional_dynamic_rnn(
           cell_fw, cell_bw, encoder_char_emb_inp, sequence_length=word_len, dtype=tf.float32)
 
-        _, ((_, output_fw), (_, output_bw)) = _output
-        output = tf.concat([output_fw, output_bw], axis=-1)
-        output = tf.reshape(output,
-        shape=[s[1], s[0], 2*char_v_size])
-        print(encoder_emb_inp, output)
-        encoder_emb_inp = tf.concat([encoder_emb_inp, output], axis=-1)
+        h_state_char = tf.concat([state_fw_char.h, state_bw_char.h], axis=-1)
+
+        if self.time_major:
+          h_state_char = tf.reshape(h_state_char,
+          shape=[s[1], s[0], 2*char_v_size])
+        else:
+          h_state_char = tf.reshape(h_state_char,
+          shape=[s[0], s[1], 2*char_v_size])
+
+        encoder_emb_inp = tf.concat([encoder_emb_inp, h_state_char], axis=-1)
 
       # Encoder_outputs: [max_time, batch_size, num_units]
       if hparams.encoder_type == "uni":

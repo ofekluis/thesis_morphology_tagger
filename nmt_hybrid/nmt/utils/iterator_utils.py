@@ -32,12 +32,13 @@ def pad_tensor(t,n,sym):
         sym- padding symbol
     return:
         a sym padded n sized tensor
+        tensor will be sliced to its n first elements if it's longer
     """
     # NOTE: This specifically for rank 1 i.e. vector tensors, can be easily
     # changed.
     s = tf.shape(t)[0]
     paddings = [[0,0],[0,n-s]]
-    return tf.pad([t], paddings, 'CONSTANT', constant_values=sym)[0]
+    return tf.pad([t], paddings, 'CONSTANT', constant_values=sym)[0][:n]
 
 # NOTE(ebrevdo): When we subclass this, instances' __dict__ becomes empty.
 class BatchedInput(
@@ -61,17 +62,17 @@ def get_infer_iterator(src_dataset,
     if src_max_len:
         src_dataset = src_dataset.map(lambda src: src[:src_max_len])
     if char:
+        src_char_eos_id = tf.cast(src_char_vocab_table.lookup(tf.constant(eos)), tf.int32)
         # Convert the word strings to ids
         # the tf.map_fn might seem a bit more involved but it basically just a
         # nested loop converting every char of every word in every sentence into
         # its id.
-        src_char_eos_id = tf.cast(src_char_vocab_table.lookup(tf.constant(eos)), tf.int32)
         src_dataset = src_dataset.map(
             lambda src: (tf.cast(src_vocab_table.lookup(src), tf.int32),
                 tf.map_fn(lambda word: pad_tensor(tf.cast(src_char_vocab_table.lookup(
                 tf.string_split([word], delimiter="").values), tf.int32),
                 WORD_MAX_LEN, src_char_eos_id), src , tf.int32, infer_shape=False),
-                         tf.map_fn(lambda word: tf.size(tf.string_split([word], delimiter="").values),src, tf.int32)
+                         tf.map_fn(lambda word: tf.minimum(tf.size(tf.string_split([word], delimiter="").values),WORD_MAX_LEN),src, tf.int32)
                          ))
         # Add in the word counts.
         src_dataset = src_dataset.map(lambda src, src_char, src_char_len: (src,
@@ -203,7 +204,7 @@ def get_iterator(src_dataset,
                     tf.map_fn(lambda word: pad_tensor(tf.cast(src_char_vocab_table.lookup(
                     tf.string_split([word], delimiter="").values), tf.int32),
                     WORD_MAX_LEN, src_char_eos_id), src , tf.int32, infer_shape=False),
-                    tf.map_fn(lambda word: tf.size(tf.string_split([word], delimiter="").values),src,dtype=tf.int32),
+                    tf.map_fn(lambda word: tf.minimum(tf.size(tf.string_split([word], delimiter="").values), WORD_MAX_LEN),src,dtype=tf.int32),
                     tf.cast(tgt_vocab_table.lookup(tgt), tf.int32)),
                 num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)
 
