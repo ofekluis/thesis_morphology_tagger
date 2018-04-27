@@ -262,8 +262,8 @@ def _create_pretrained_emb_from_txt(
   emb_dict, emb_size = vocab_utils.load_embed_txt(embed_file)
   for token in trainable_tokens:
     utils.print_out("    %s" % token)
-    if token not in emb_dict:
-      emb_dict[token] = [0.0] * emb_size
+    #if token not in emb_dict:
+    emb_dict[token] = [0.0] * emb_size
 
   emb_mat = np.array(
       [emb_dict[token] for token in vocab], dtype=dtype.as_numpy_dtype())
