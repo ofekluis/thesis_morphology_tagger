@@ -570,7 +570,7 @@ class Model(BaseModel):
       # Look up embedding, emp_inp: [max_time, batch_size, num_units]
       encoder_emb_inp = tf.nn.embedding_lookup(
         self.embedding_encoder, source)
-      if iterator.source_char is not None:
+      if hparams.num_units_char > 0:
         # in case of char embeddings in a hybrid word plus char embeddings mode.
         encoder_char_emb_inp = tf.nn.embedding_lookup(
           self.embedding_char_encoder, src_char_ids)
