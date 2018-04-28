@@ -1,1 +1,7 @@
-python3 -m nmt.nmt     --src=from --tgt=to     --vocab_prefix=./nmt/vocab      --train_prefix=./nmt/trn     --dev_prefix=./nmt/vld  --test_prefix=./nmt/tst    --out_dir=./nmt
+#!/bin/bash
+if [ "$1" = "" ]; then
+    out="./nmt"
+else
+    out="$1"
+fi
+python3 -m nmt.nmt     --src=from --tgt=to  --out_dir=$out
