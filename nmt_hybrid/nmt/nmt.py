@@ -185,6 +185,9 @@ def add_arguments(parser):
       maximum decoding length.\
       """)
 
+  parser.add_argument("--decoding_length_factor", type=int, default=4.2,
+                      help="""Factor of the target decoding dependent on\
+                      max source length""")
   # Default settings works well (rarely need to change)
   parser.add_argument("--unit_type", type=str, default="lstm",
                       help="lstm | gru | layer_norm_lstm | nas")
@@ -342,6 +345,7 @@ def create_hparams(flags):
       # Inference
       src_max_len_infer=flags.src_max_len_infer,
       tgt_max_len_infer=flags.tgt_max_len_infer,
+      decoding_length_factor=flags.decoding_length_factor,
       infer_batch_size=flags.infer_batch_size,
       beam_width=flags.beam_width,
       length_penalty_weight=flags.length_penalty_weight,

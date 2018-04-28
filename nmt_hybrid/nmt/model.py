@@ -353,15 +353,10 @@ class BaseModel(object):
       maximum_iterations = hparams.tgt_max_len_infer
       utils.print_out("  decoding maximum_iterations %d" % maximum_iterations)
     else:
-      maximum_iterations=hparams.tgt_max_len
-      # TODO(thangluong): add decoding_length_factor flag
-      """
-      commenting out cause this does not fit a non NMT case.
-      decoding_length_factor = 2.0
+      decoding_length_factor = hparams.decoding_length_factor
       max_encoder_length = tf.reduce_max(source_sequence_length)
       maximum_iterations = tf.to_int32(tf.round(
           tf.to_float(max_encoder_length) * decoding_length_factor))
-      """
     return maximum_iterations
 
   def _build_decoder(self, encoder_outputs, encoder_state, hparams):
