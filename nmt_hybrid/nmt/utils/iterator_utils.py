@@ -24,8 +24,6 @@ import tensorflow as tf
 __all__ = ["BatchedInput", "get_iterator", "get_infer_iterator"]
 
 
-# WORD_MAX_LEN is used for padding for character tensors later on.
-WORD_MAX_LEN=50
 def pad_tensor(t,n,sym):
     """
     args:
@@ -40,7 +38,7 @@ def pad_tensor(t,n,sym):
     # changed.
     s = tf.shape(t)[0]
     paddings = [[0,0],[0,n-s]]
-    return tf.pad([t], paddings, 'CONSTANT', constant_values=sym)[0][:n]
+    return tf.pad([t], paddings, 'CONSTANT', constant_values=sym)[0]
 
 # NOTE(ebrevdo): When we subclass this, instances' __dict__ becomes empty.
 class BatchedInput(
@@ -65,17 +63,21 @@ def get_infer_iterator(src_dataset,
         src_dataset = src_dataset.map(lambda src: src[:src_max_len])
     if char:
         src_char_eos_id = tf.cast(src_char_vocab_table.lookup(tf.constant(eos)), tf.int32)
+        # get len of every word in every sentence
+        src_dataset = src_dataset.map(
+            lambda src: (src,
+                         tf.map_fn(lambda word: tf.size(tf.string_split([word], delimiter="").values),src, tf.int32)
+                         ))
         # Convert the word strings to ids
         # the tf.map_fn might seem a bit more involved but it basically just a
         # nested loop converting every char of every word in every sentence into
         # its id.
         src_dataset = src_dataset.map(
-            lambda src: (tf.cast(src_vocab_table.lookup(src), tf.int32),
+            lambda src, src_char_len: (tf.cast(src_vocab_table.lookup(src), tf.int32),
                 tf.map_fn(lambda word: pad_tensor(tf.cast(src_char_vocab_table.lookup(
                 tf.string_split([word], delimiter="").values), tf.int32),
-                WORD_MAX_LEN, src_char_eos_id), src , tf.int32, infer_shape=False),
-                         tf.map_fn(lambda word: tf.minimum(tf.size(tf.string_split([word], delimiter="").values),WORD_MAX_LEN),src, tf.int32)
-                         ))
+                tf.reduce_max(src_char_len), src_char_eos_id), src , tf.int32, infer_shape=False),
+                src_char_len))
         # Add in the word counts.
         src_dataset = src_dataset.map(lambda src, src_char, src_char_len: (src,
                                             src_char , tf.size(src),
@@ -201,12 +203,19 @@ def get_iterator(src_dataset,
     # Convert the word strings to ids.    Word strings that are not in the
     # vocab get the lookup table's default_value integer.
     if char:
+
+        # get length of every word in every sentence
         src_tgt_dataset = src_tgt_dataset.map(
-                lambda src, tgt: (tf.cast(src_vocab_table.lookup(src), tf.int32),
+            lambda src, tgt: (src,
+            tf.map_fn(lambda word: tf.size(tf.string_split([word], delimiter="").values),src,dtype=tf.int32),
+            tgt))
+
+        src_tgt_dataset = src_tgt_dataset.map(
+                lambda src, src_char_len, tgt: (tf.cast(src_vocab_table.lookup(src), tf.int32),
                     tf.map_fn(lambda word: pad_tensor(tf.cast(src_char_vocab_table.lookup(
                     tf.string_split([word], delimiter="").values), tf.int32),
-                    WORD_MAX_LEN, src_char_eos_id), src , tf.int32, infer_shape=False),
-                    tf.map_fn(lambda word: tf.minimum(tf.size(tf.string_split([word], delimiter="").values), WORD_MAX_LEN),src,dtype=tf.int32),
+                    tf.reduce_max(src_char_len), src_char_eos_id), src , tf.int32, infer_shape=False),
+                    src_char_len,
                     tf.cast(tgt_vocab_table.lookup(tgt), tf.int32)),
                 num_parallel_calls=num_parallel_calls).prefetch(output_buffer_size)
 
