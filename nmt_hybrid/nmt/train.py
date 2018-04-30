@@ -278,8 +278,8 @@ def train(hparams, scope=None, target_session=""):
   steps_per_eval = 10 * steps_per_stats
   avg_ckpts = hparams.avg_ckpts
 
-  #if not steps_per_external_eval:
-  #  steps_per_external_eval = 5 * steps_per_eval
+  if not steps_per_external_eval:
+    steps_per_external_eval = 500 * steps_per_eval
 
   if not hparams.attention:
     model_creator = nmt_model.Model
