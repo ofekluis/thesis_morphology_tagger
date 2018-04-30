@@ -222,7 +222,7 @@ def add_arguments(parser):
   parser.add_argument("--metrics", type=str, default="bleu",
                       help=("Comma-separated list of evaluations "
                             "metrics (bleu,rouge,accuracy)"))
-  parser.add_argument("--steps_per_external_eval", type=int, default=None,
+  parser.add_argument("--steps_per_external_eval", type=int, default=0,
                       help="""\
       How many training steps to do per external evaluation.  Automatically set
       based on data if None.\
@@ -479,7 +479,7 @@ def extend_hparams(hparams):
     hparams.add_hparam("src_char_vocab_file", src_char_vocab_file)
   else:
     hparams.add_hparam("src_char_vocab_size", 0)
-    hparams.add_hparam("src_char_vocab_file", None)
+    hparams.add_hparam("src_char_vocab_file", "")
 
 
   # Pretrained Embeddings:
