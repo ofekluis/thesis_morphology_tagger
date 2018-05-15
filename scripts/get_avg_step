@@ -1,0 +1,6 @@
+#!/bin/bash
+# Extracts average step time from log file
+steps_sum=`awk '{print $6}' $1 | sed -n '3,$p' | head -n -1 | grep -Eo [0-9]+\.[0-9]* | awk '{s+=$1}END{print s}'`
+steps_n=`awk '{print $6}' $1 | sed -n '3,$p' | head -n -1 | wc -l`
+avg_step=`awk -v var1=$steps_sum -v var2=$steps_n 'BEGIN { print ( var1 / var2 ) }'`
+echo $avg_step
