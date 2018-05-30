@@ -24,7 +24,7 @@ import sys
 # import matplotlib.image as mpimg
 import numpy as np
 import tensorflow as tf
-
+from .utils import data_utils
 from . import inference
 from . import train
 from .utils import evaluation_utils
@@ -41,13 +41,13 @@ def add_arguments(parser):
   parser.register("type", "bool", lambda v: v.lower() == "true")
 
   # network
-  parser.add_argument("--num_units", type=int, default=32, help="Network size.")
+  parser.add_argument("--num_units", type=int, default=8, help="Network size.")
   parser.add_argument("--num_units_char", type=int, default=0, help="Network char size. If not zero network size will be num_units_char+num_units")
   parser.add_argument("--num_layers", type=int, default=2,
                       help="Network depth.")
-  parser.add_argument("--num_encoder_layers", type=int, default=None,
+  parser.add_argument("--num_encoder_layers", type=int, default=1,
                       help="Encoder depth, equal to num_layers if None.")
-  parser.add_argument("--num_decoder_layers", type=int, default=None,
+  parser.add_argument("--num_decoder_layers", type=int, default=1,
                       help="Decoder depth, equal to num_layers if None.")
   parser.add_argument("--encoder_type", type=str, default="uni", help="""\
       uni | bi | gnmt.
@@ -135,21 +135,21 @@ def add_arguments(parser):
                             "between [-this, this]."))
 
   # data
-  parser.add_argument("--src", type=str, default=None,
+  parser.add_argument("--src", type=str, default="from",
                       help="Source suffix, e.g., en.")
-  parser.add_argument("--tgt", type=str, default=None,
+  parser.add_argument("--tgt", type=str, default="to",
                       help="Target suffix, e.g., de.")
-  parser.add_argument("--train_prefix", type=str, default=None,
+  parser.add_argument("--train_prefix", type=str, default="./nmt/trn",
                       help="Train prefix, expect files with src/tgt suffixes.")
-  parser.add_argument("--dev_prefix", type=str, default=None,
+  parser.add_argument("--dev_prefix", type=str, default="./nmt/vld",
                       help="Dev prefix, expect files with src/tgt suffixes.")
-  parser.add_argument("--test_prefix", type=str, default=None,
+  parser.add_argument("--test_prefix", type=str, default="./nmt/tst",
                       help="Test prefix, expect files with src/tgt suffixes.")
-  parser.add_argument("--out_dir", type=str, default=None,
+  parser.add_argument("--out_dir", type=str, default="./nmt",
                       help="Store log/model files.")
 
   # Vocab
-  parser.add_argument("--vocab_prefix", type=str, default=None, help="""\
+  parser.add_argument("--vocab_prefix", type=str, default="./nmt/vocab", help="""\
       Vocab prefix, expect files with src/tgt suffixes.\
       """)
   parser.add_argument("--embed_prefix", type=str, default=None, help="""\
@@ -449,6 +449,8 @@ def extend_hparams(hparams):
 
   # Source vocab char
   if hparams.num_units_char > 0:
+     if not tf.gfile.Exists(src_char_vocab_file):
+        data_utils.create_vocabulary(hparams.train_prefix+"."+hparams.src, src_char_vocab_file, 40000)
      src_char_vocab_size, src_char_vocab_file = vocab_utils.check_vocab(
      src_char_vocab_file,
      hparams.out_dir,
