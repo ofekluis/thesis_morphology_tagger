@@ -479,7 +479,7 @@ def create_rnn_cell(unit_type, num_units, num_units_char, num_layers, num_residu
     An `RNNCell` instance.
   """
   cell_list = _cell_list(unit_type=unit_type,
-                         num_units=num_units + num_units_char,
+                         num_units=num_units + 2*num_units_char,
                          num_layers=num_layers,
                          num_residual_layers=num_residual_layers,
                          forget_bias=forget_bias,

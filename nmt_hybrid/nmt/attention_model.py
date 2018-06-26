@@ -75,7 +75,7 @@ class AttentionModel(model.Model):
       raise ValueError(
           "Unknown attention architecture %s" % attention_architecture)
 
-    num_units = hparams.num_units + hparams.num_units_char
+    num_units = hparams.num_units + 2*hparams.num_units_char
     num_layers = self.num_decoder_layers
     num_residual_layers = self.num_decoder_residual_layers
     beam_width = hparams.beam_width
