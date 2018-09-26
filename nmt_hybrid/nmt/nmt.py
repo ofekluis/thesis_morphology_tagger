@@ -34,7 +34,7 @@ from .utils import vocab_utils
 utils.check_tensorflow_version()
 
 FLAGS = None
-
+MAX_VOCAB_SIZE=40000
 
 def add_arguments(parser):
   """Build ArgumentParser."""
@@ -439,6 +439,8 @@ def extend_hparams(hparams):
     raise ValueError("hparams.vocab_prefix must be provided.")
 
   # Source vocab
+  if not tf.gfile.Exists(src_vocab_file):
+    data_utils.create_vocabulary(hparams.train_prefix+"."+hparams.src, src_vocab_file, MAX_VOCAB_SIZE)
   src_vocab_size, src_vocab_file = vocab_utils.check_vocab(
       src_vocab_file,
       hparams.out_dir,
@@ -450,7 +452,7 @@ def extend_hparams(hparams):
   # Source vocab char
   if hparams.num_units_char > 0:
      if not tf.gfile.Exists(src_char_vocab_file):
-        data_utils.create_vocabulary(hparams.train_prefix+"."+hparams.src, src_char_vocab_file, 40000)
+        data_utils.create_vocabulary(hparams.train_prefix+"."+hparams.src, src_char_vocab_file, MAX_VOCAB_SIZE)
      src_char_vocab_size, src_char_vocab_file = vocab_utils.check_vocab(
      src_char_vocab_file,
      hparams.out_dir,
@@ -465,6 +467,8 @@ def extend_hparams(hparams):
     tgt_vocab_file = src_vocab_file
     tgt_vocab_size = src_vocab_size
   else:
+    if not tf.gfile.Exists(tgt_vocab_file):
+      data_utils.create_vocabulary(hparams.train_prefix+"."+hparams.tgt, tgt_vocab_file, MAX_VOCAB_SIZE)
     tgt_vocab_size, tgt_vocab_file = vocab_utils.check_vocab(
         tgt_vocab_file,
         hparams.out_dir,
