@@ -1,1 +1,2 @@
+#finds the longest sentence in a file
 cat $@ |awk '{print length, $0}'|sort -nr|head -1 | wc -w
